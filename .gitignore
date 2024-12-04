@@ -1,0 +1,5 @@
+*.pyc
+*.sw*
+.*.sw*
+__pycache__
+*.cpython*

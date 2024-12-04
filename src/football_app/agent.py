@@ -10,8 +10,8 @@ def load_agent(tool_names: List[str] = []) -> AgentExecutor:
     Load the agent with the given tool names
     """
     llm = GoogleGenerativeAI(model="gemini-pro")
-    prompt = hub.pull("hwchaise17/react")
-    tools = load_tools(tool_names)
+    prompt = hub.pull("hwchase17/react")
+    tools = load_tools()
     agent = create_react_agent(llm, prompt, tool_names=tool_names)
     return AgentExecutor(
         agent=agent,

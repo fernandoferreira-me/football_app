@@ -2,13 +2,20 @@ from football_stats.competitions import get_competitions, get_matches
 from football_stats.matches import get_lineups, get_events, get_player_stats
 from langchain.memory import ConversationBufferMemory
 from langchain_community.chat_message_histories import StreamlitChatMessageHistory
+from langchain.schema import AIMessage, HumanMessage
+
 from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 from tools.football import get_sport_specialist_comments_about_match as comments_about_a_match
-
-import streamlit as st
+from tools import load_tools
 import json
 
 from agent import load_agent
+
+import streamlit as st
+
+st.set_page_config(layout="wide",
+                   page_title="Football Match Conversation App",
+                   page_icon="⚽️")
 
 msgs = StreamlitChatMessageHistory()
 
@@ -18,15 +25,10 @@ if "memory" not in st.session_state:
 
 memory = st.session_state.memory
 
-st.set_page_config(layout="wide",
-                   page_title="Football Match Conversation App",
-                   page_icon="⚽️")
-
-# Utility functions
-def reset_analysis():
-    if "analysis" in st.session_state:
-        del st.session_state["analysis"]
-
+def memorize_message():
+    user_input = st.session_state["user_input"]
+    st.session_state["memory"].chat_memory.add_message(HumanMessage(content=user_input))
+    
 def load_competitions():
     """
     Simulates loading competitions from your function.
@@ -41,12 +43,6 @@ def load_matches(competition_id, season_id):
     """
     return  json.loads(get_matches(competition_id, season_id))
 
-def start_conversation(match_id):
-    """
-    Simulates starting a conversation based on a match ID.
-    Replace this with your custom logic to handle the conversation.
-    """
-    st.write(f"Starting conversation for match ID: {match_id}")
 
 # Streamlit Sidebar
 st.sidebar.title("Football Match Selector")
@@ -62,15 +58,13 @@ st.sidebar.header("Step 1: Select a Competition")
 competitions = load_competitions()
 competition_names = sorted(set([comp['competition_name'] for comp in competitions]))
 selected_competition = st.sidebar.selectbox("Choose a Competition",
-                                            competition_names,
-                                            on_change=reset_analysis())
+                                            competition_names)
 if selected_competition:
     # Step 2: Select a Season
     st.sidebar.header("Step 2: Select a Season")
     seasons = set(comp['season_name'] for comp in competitions
                   if comp['competition_name'] == selected_competition)
-    selected_season = st.sidebar.selectbox("Choose a Season", sorted(seasons),
-                                            on_change=reset_analysis())
+    selected_season = st.sidebar.selectbox("Choose a Season", sorted(seasons))
     
     
 if selected_season:
@@ -91,8 +85,7 @@ if selected_season:
     matches = load_matches(competition_id, season_id)
     match_names = sorted([f"{match['home_team']} vs {match['away_team']}" for match in matches])
     
-    if selected_match:=st.sidebar.selectbox("Choose a Match", match_names,
-                                            on_change=reset_analysis()):
+    if selected_match:=st.sidebar.selectbox("Choose a Match", match_names):
         # Get the selected match ID
         match_details = next(
             (match for match in matches if f"{match['home_team']} vs {match['away_team']}" == selected_match),
@@ -115,18 +108,60 @@ else:
     """,
     unsafe_allow_html=True)
     st.markdown(f'<h1 class="title">{selected_match}</h1><h3 class="title">{selected_competition} - Season {selected_season}</h3>', unsafe_allow_html=True)
+    with st.container(border=False):
+        st.chat_input(key="user_input", on_submit=memorize_message) 
+        if user_input := st.session_state.user_input:
+            chat_history = st.session_state["memory"].chat_memory.messages
+            for msg in chat_history:
+                if isinstance(msg, HumanMessage):
+                    with st.chat_message("user"):
+                        st.write(f"{msg.content}")
+                elif isinstance(msg, AIMessage):
+                    with st.chat_message("assistant"):
+                        st.write(f"{msg.content}")
+                        
+            with st.spinner("Agent is responding..."):
+                try:
+                    # Load agent
+                    agent = load_agent()
+                    
+                    # Cache tools to avoid redundant calls
+                    tools = load_tools()
+                    tool_names = [tool.name for tool in tools]
+                    tool_descriptions = [tool.description for tool in tools]
 
-    col1, col2 = st.columns([0.4, 0.6])
-    with col1:
-        if 'analysis' not in st.session_state:
-            with st.spinner("Specialist analysis in progress..."):
-                specialist_comments = comments_about_a_match(
-                    json.dumps(match_details), 
-                    get_lineups(match_id)
-                )
-                st.session_state["analysis"] = specialist_comments
-        with st.chat_message("specialist", avatar="👨🏼‍💼"):
-            st.write(st.session_state["analysis"])
-    with col2:
-        st.write("Chat with the assistant")
-          
+                    # Prepare input for the agent
+                    input_data = {
+                        "match_id": match_id,
+                        "match_name": selected_match,
+                        "input": user_input,
+                        "agent_scratchpad": "",
+                        "competition_id": competition_id,
+                        "season_id": season_id,
+                        "tool_names": tool_names,
+                        "tools": tool_descriptions,
+                    }
+
+                    # Debug: Print input to verify structure (optional)
+                    # st.write(f"Input to agent: {input_data}")
+
+                    # Invoke agent
+                    response = agent.invoke(input=input_data, handle_parsing_errors=True)
+
+                    # Validate response
+                    if isinstance(response, dict) and "output" in response:
+                        output = response.get("output")
+                    else:
+                        output = "Sorry, I couldn't understand your request. Please try again."
+
+                    # Add response to chat memory
+                    st.session_state["memory"].chat_memory.add_message(AIMessage(content=output))
+
+                    # Display response in chat
+                    with st.chat_message("assistant"):
+                        st.write(output)
+
+                except Exception as e:
+                    # Handle and display errors gracefully
+                    st.error(f"Error during agent execution: {str(e)}")
+                    st.write("Ensure that your inputs and agent configuration are correct.")

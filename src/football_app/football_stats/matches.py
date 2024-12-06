@@ -18,7 +18,7 @@ def to_json(df: pd.DataFrame) -> str:
     return json.dumps(df, indent=2)
 
 
-def get_lineups(match_id: int) -> pd.DataFrame:
+def get_lineups(match_id: int) -> str:
     data = sb.lineups(match_id=match_id)
     data_final = copy(data)
     list_fields = ['cards', 'positions']
@@ -29,7 +29,7 @@ def get_lineups(match_id: int) -> pd.DataFrame:
     return to_json(data_final)
 
 
-def get_events(match_id: int) -> pd.DataFrame:
+def get_events(match_id: int) -> str:
     events = sb.events(match_id=match_id, split=True, flatten_attrs=False)
     full_events = pd.concat([v for _, v in events.items()])
     return to_json([
@@ -38,7 +38,7 @@ def get_events(match_id: int) -> pd.DataFrame:
     ])
 
 
-def get_player_stats(match_id, player_name):
+def get_player_stats(match_id, player_name) -> str:
     """
     Returns the consolidated statistics of a specific player in a match.
 

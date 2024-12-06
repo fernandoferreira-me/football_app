@@ -27,6 +27,8 @@ attrs==24.2.0
     #   jsonschema
     #   referencing
     #   requests-cache
+beautifulsoup4==4.12.3
+    # via wikipedia
 blinker==1.9.0
     # via streamlit
 cachetools==5.5.0
@@ -284,6 +286,7 @@ requests==2.32.3
     #   requests-toolbelt
     #   statsbombpy
     #   streamlit
+    #   wikipedia
 requests-cache==1.2.1
     # via statsbombpy
 requests-toolbelt==1.0.0
@@ -308,6 +311,8 @@ smmap==5.0.1
     # via gitdb
 sniffio==1.3.1
     # via anyio
+soupsieve==2.6
+    # via beautifulsoup4
 sqlalchemy==2.0.36
     # via
     #   langchain
@@ -356,5 +361,7 @@ urllib3==2.2.3
     # via
     #   requests
     #   requests-cache
+wikipedia==1.4.0
+    # via -r requirements.in
 yarl==1.18.3
     # via aiohttp

@@ -2,10 +2,10 @@ from langchain.agents import (AgentExecutor, Tool, create_self_ask_with_search_a
 from langchain import hub
 from langchain_community.utilities import GoogleSerperAPIWrapper
 from langchain_google_genai import GoogleGenerativeAI
-
+import os
 
 def get_search_utility():
-    SERPER_API_KEY = "644ebf22af0886314c0aaf6a28fa085a25529bfc"
+    SERPER_API_KEY = os.getenv("SERPER_API_KEY")
     return GoogleSerperAPIWrapper(serper_api_key=SERPER_API_KEY)
 
 

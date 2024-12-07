@@ -21,7 +21,7 @@ def get_self_ask_agent() -> AgentExecutor:
     """
     Get the self ask agent
     """
-    llm = GoogleGenerativeAI(model="gemini-pro")
+    llm = GoogleGenerativeAI(model="gemini-pro", temperature=0.2)
     intermediate_search_tool = Tool(
         name='Intermediate Answer',
         func=get_search_utility().run,

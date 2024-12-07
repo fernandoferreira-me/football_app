@@ -11,7 +11,7 @@ def load_agent() -> AgentExecutor:
     """
     Load the agent with the given tool names
     """
-    llm = GoogleGenerativeAI(model="gemini-pro")
+    llm = GoogleGenerativeAI(model="gemini-pro", temperature=0.2)
     
     football_prompt = """
     You are a helpful AI assistant tasked with analyzing a football match. 
@@ -36,12 +36,14 @@ def load_agent() -> AgentExecutor:
     Thought: [Your reasoning about what action to take next]
     Action: [The name of the tool to use]
     Action Input: [The input required by the tool, such as the match_id or specific data]
+    Observation: [The output or result from the tool]
 
     Example:
         Thought: I need to retrieve the basic details of the match to provide an overview.
         Action: get_match_details
         Action Input: {{"match_id": "12345", "competition_id": "123", "season_id": "02"}}
-        Observation: [The result from the tool]
+        Observation: Do I have the match details? If not, I will use the tool to retrieve them.
+                     Otherwise, I will proceed with the analysis.
 
     ### Observations and Next Steps:
     - Based on the tool's output, decide on the next action or provide your analysis.
@@ -77,5 +79,5 @@ def load_agent() -> AgentExecutor:
         tools=tools,
         handle_parsing_errors=True,
         verbose=True,
-        max_iterations=5
+        max_iterations=10
     )
